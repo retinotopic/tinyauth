@@ -45,7 +45,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
 	log.Println(resp.StatusCode)
 
 }
-func (p Provider) Revoke(w http.ResponseWriter, r *http.Request) {
+func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) {
 	form := url.Values{}
 	token, err := r.Cookie("refreshToken")
 	if err != nil {

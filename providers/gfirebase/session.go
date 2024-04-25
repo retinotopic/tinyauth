@@ -40,7 +40,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
 	////
 	log.Println(resp.StatusCode)
 }
-func (p Provider) Revoke(w http.ResponseWriter, r *http.Request) {
+func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("idToken")
 	if err != nil {
 		log.Println(err, "revoke cookie retrieve err")
