@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/pascaldekloe/jwt"
-	"github.com/retinotopic/GoChat/pkg/safectx"
 	"golang.org/x/oauth2/google"
 )
 
@@ -66,7 +65,7 @@ func (p Provider) Revoke(w http.ResponseWriter, r *http.Request) {
 	log.Println(resp.StatusCode)
 
 }
-func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) {
+func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) string {
 	token, err3 := r.Cookie("token")
 	if err3 != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -81,6 +80,5 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) {
 	/*ctx := r.Context()
 	ctx = context.WithValue(ctx, "user", claims.Subject)
 	r = r.WithContext(ctx)*/
-	ctx := safectx.SetContext(r.Context(), "sub", claims.Subject)
-	*r = *(r.WithContext(ctx))
+	return claims.Subject
 }
