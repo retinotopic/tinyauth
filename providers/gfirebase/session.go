@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/retinotopic/GoChat/pkg/safectx"
 )
 
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +56,7 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) {
 		log.Println(err, "revoke refresh token err")
 	}
 }
-func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) string {
+func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("idToken")
 	if err != nil {
 		log.Println(err, "revoke cookie retrieve err")
@@ -63,5 +65,8 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) string {
 	if err != nil {
 		log.Println(err, "verify id token err")
 	}
-	return token.UID
+	ctx := r.Context()
+	ctx = safectx.SetContext(ctx, "uid", token.UID)
+	req := r.WithContext(ctx)
+	*r = *req
 }
