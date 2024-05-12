@@ -1,2 +1,2 @@
 # TinyAuth
-personal authentication system
+stateless oauth library, still in development

@@ -2,23 +2,23 @@ package google
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/pascaldekloe/jwt"
-	"github.com/retinotopic/GoChat/pkg/safectx"
+	"github.com/retinotopic/TinyAuth/provider"
 	"golang.org/x/oauth2/google"
 )
 
-func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
-	tokens := make(map[string]string)
+func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) error {
+	tokens := &provider.Tokens{}
 	form := url.Values{}
-	token, err := r.Cookie("refreshToken")
+	token, err := r.Cookie("RefreshToken")
 	if err != nil {
-		log.Println(err, "revoke cookie retrieve err")
+		return err
 	}
 	form.Add("refresh_token", token.Value)
 	form.Add("grant_type", "refresh_token")
@@ -26,60 +26,57 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
 	form.Add("client_secret", p.Config.ClientSecret)
 	req, err := http.NewRequest("POST", google.Endpoint.TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Println(err, "error creating request error")
+		return err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println(err, "error request error")
+		return err
 	}
 	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
-		log.Println(err, "json decode error")
+		return err
 	}
 
-	idToken := http.Cookie{Name: "idToken", Value: tokens["IdToken"], MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
-	refreshToken := http.Cookie{Name: "refreshToken", Value: tokens["RefreshToken"], Path: "/refresh", HttpOnly: true, Secure: true}
-	http.SetCookie(w, &idToken)
-	http.SetCookie(w, &refreshToken)
-
-	log.Println(resp.StatusCode)
+	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	http.SetCookie(w, &Token)
+	return nil
 
 }
-func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) {
+func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
-	token, err := r.Cookie("refreshToken")
+	token, err := r.Cookie("RefreshToken")
 	if err != nil {
-		log.Println(err, "revoke cookie retrieve err")
+		return err
 	}
 	form.Add("token", token.Value)
 	req, err := http.NewRequest("POST", p.RevokeURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Println(err, "error request error")
+		return err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println(err, "error request error")
+		return err
 	}
-	///
-	log.Println(resp.StatusCode)
-
+	w.WriteHeader(resp.StatusCode)
+	return nil
 }
-func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) {
-	token, err3 := r.Cookie("token")
-	if err3 != nil {
+func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, error) {
+	token, err := r.Cookie("token")
+	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
+		return "", err
 	}
-	claims, err4 := jwt.RSACheck([]byte(token.Value), p.PublicKey)
-	if err4 != nil {
+	claims, err := jwt.RSACheck([]byte(token.Value), p.PublicKey)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return "", err
 	}
 	if !claims.Valid(time.Now()) {
 		w.WriteHeader(http.StatusBadRequest)
+		return "", errors.New("invalid claims")
 	}
-	ctx := r.Context()
-	ctx = safectx.SetContext(ctx, "user", claims.Subject)
-	req := r.WithContext(ctx)
-	*r = *req
+	return claims.Subject, nil
+
 }

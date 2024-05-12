@@ -8,13 +8,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/retinotopic/GoChat/pkg/safectx"
+	"github.com/retinotopic/TinyAuth/provider"
 )
 
-func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
-	tokens := make(map[string]string)
+func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) error {
+	tokens := &provider.Tokens{}
 	form := url.Values{}
-	token, err := r.Cookie("refreshToken")
+	token, err := r.Cookie("RefreshToken")
 	if err != nil {
 		log.Println(err, "revoke cookie retrieve err")
 	}
@@ -22,51 +22,46 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) {
 	form.Add("grant_type", "refresh_token")
 	req, err := http.NewRequest("POST", p.RefreshTokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Println(err, "error creating request error")
+		return err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println(err, "error request error")
+		return err
 	}
 	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
-		log.Println(err, "json decode error")
+		return err
 	}
 
-	idToken := http.Cookie{Name: "idToken", Value: tokens["IdToken"], MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
-	refreshToken := http.Cookie{Name: "refreshToken", Value: tokens["RefreshToken"], Path: "/refresh", HttpOnly: true, Secure: true}
-	http.SetCookie(w, &idToken)
-	http.SetCookie(w, &refreshToken)
-	////
-	log.Println(resp.StatusCode)
+	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
+	http.SetCookie(w, &Token)
+	return nil
 }
-func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("idToken")
+func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
+	c, err := r.Cookie("Token")
 	if err != nil {
-		log.Println(err, "revoke cookie retrieve err")
+		return err
 	}
 	token, err := p.Client.VerifyIDToken(context.Background(), c.Value)
 	if err != nil {
-		log.Println(err, "verify id token err")
+		return err
 	}
 	err = p.Client.RevokeRefreshTokens(context.Background(), token.UID)
 	if err != nil {
-		log.Println(err, "revoke refresh token err")
+		return err
 	}
+	return nil
 }
-func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("idToken")
+func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, error) {
+	c, err := r.Cookie("Token")
 	if err != nil {
-		log.Println(err, "revoke cookie retrieve err")
+		return "", err
 	}
 	token, err := p.Client.VerifyIDToken(context.Background(), c.Value)
 	if err != nil {
-		log.Println(err, "verify id token err")
+		return "", err
 	}
-	ctx := r.Context()
-	ctx = safectx.SetContext(ctx, "uid", token.UID)
-	req := r.WithContext(ctx)
-	*r = *req
+	return token.UID, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,11 +11,13 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
+	"github.com/retinotopic/TinyAuth/provider"
 	"github.com/retinotopic/pokerGO/pkg/randfuncs"
 	"google.golang.org/api/option"
 )
 
 type Provider struct {
+	name               string
 	Client             *auth.Client
 	oauthStateString   string
 	WebApiKey          string
@@ -26,16 +27,16 @@ type Provider struct {
 	RefreshTokenURL    string
 }
 
-func New(webapikey string, credentials string, redirect string) Provider {
+func New(webapikey string, credentials string, redirect string) (Provider, error) {
 	fmt.Println(credentials, webapikey)
 	opt := option.WithCredentialsFile(credentials)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
-		log.Fatalf("error initializing app: %v\n", err)
+		return Provider{}, nil
 	}
 	client, err := app.Auth(context.Background())
 	if err != nil {
-		log.Fatalf("error initializing auth client: %v\n", err)
+		return Provider{}, nil
 	}
 	fmt.Println("vse ok")
 	return Provider{
@@ -46,9 +47,13 @@ func New(webapikey string, credentials string, redirect string) Provider {
 		SendOobCodeURL:     "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=",
 		SignInWithEmailURL: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithEmailLink?key=",
 		RefreshTokenURL:    "https://securetoken.googleapis.com/v1/token?key=",
-	}
+		name:               "firebase",
+	}, nil
 }
-func (p Provider) BeginLoginCreate(w http.ResponseWriter, r *http.Request) {
+func (p Provider) GetName() string {
+	return p.name
+}
+func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
 	form.Add("requestType", "EMAIL_SIGNIN")
 	form.Add("email", r.FormValue("email"))
@@ -56,12 +61,12 @@ func (p Provider) BeginLoginCreate(w http.ResponseWriter, r *http.Request) {
 	req, err := http.NewRequest("POST", p.SendOobCodeURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {
-		log.Println(err, "creating request error")
+		return err
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println(err, "request error")
+		return err
 	}
 
 	c := &http.Cookie{
@@ -75,16 +80,16 @@ func (p Provider) BeginLoginCreate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = resp.Write(w)
 	if err != nil {
-		log.Println(err, "write error")
+		return err
 	}
-
+	return nil
 }
 
-func (p Provider) CompleteLoginCreate(w http.ResponseWriter, r *http.Request) {
-	tokens := make(map[string]string)
+func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) error {
+	tokens := &provider.Tokens{}
 	c, err := r.Cookie("email")
 	if err != nil {
-		log.Println(err, "cookie retrieve error")
+		return err
 	}
 
 	oobCode := r.URL.Query().Get("oobCode")
@@ -94,25 +99,23 @@ func (p Provider) CompleteLoginCreate(w http.ResponseWriter, r *http.Request) {
 	form.Add("email", c.Value)
 	req, err := http.NewRequest("POST", p.SignInWithEmailURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Println(err, "creating request error")
+		return err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println(err, "request error")
+		return err
 	}
 	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
-		log.Println(err, "json decode error")
+		return err
 	}
 
-	idToken := http.Cookie{Name: "idToken", Value: tokens["IdToken"], MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
-	refreshToken := http.Cookie{Name: "refreshToken", Value: tokens["RefreshToken"], Path: "/refresh", HttpOnly: true, Secure: true}
-	providerC := http.Cookie{Name: "provider", Value: "gfirebase", Path: "/", HttpOnly: true, Secure: true}
-	http.SetCookie(w, &idToken)
-	http.SetCookie(w, &refreshToken)
-	http.SetCookie(w, &providerC)
+	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "RefreshToken", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
+	http.SetCookie(w, &Token)
+	http.SetCookie(w, &RefreshToken)
 	c = &http.Cookie{
 		Name:     "email",
 		Value:    "",
@@ -124,7 +127,7 @@ func (p Provider) CompleteLoginCreate(w http.ResponseWriter, r *http.Request) {
 
 	err = resp.Write(w)
 	if err != nil {
-		log.Println(err, "write error")
+		return err
 	}
-
+	return nil
 }
