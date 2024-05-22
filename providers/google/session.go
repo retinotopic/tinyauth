@@ -77,6 +77,16 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		w.WriteHeader(http.StatusBadRequest)
 		return "", errors.New("invalid claims")
 	}
-	return claims.Subject, nil
 
+	if claims.Issuer != "https://accounts.google.com" && claims.Issuer != "accounts.google.com" {
+		w.WriteHeader(http.StatusBadRequest)
+		return "", errors.New("invalid issuer")
+	}
+
+	if !claims.AcceptAudience(p.Config.ClientID) {
+		w.WriteHeader(http.StatusBadRequest)
+		return "", errors.New("invalid audience")
+	}
+
+	return claims.Subject, nil
 }

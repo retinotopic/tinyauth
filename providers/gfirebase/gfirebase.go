@@ -50,9 +50,7 @@ func New(webapikey string, credentials string, redirect string) (Provider, error
 		name:               "firebase",
 	}, nil
 }
-func (p Provider) GetName() string {
-	return p.name
-}
+
 func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
 	form.Add("requestType", "EMAIL_SIGNIN")
@@ -64,7 +62,7 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	_, err = http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -77,11 +75,7 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	http.SetCookie(w, c)
-	w.WriteHeader(http.StatusOK)
-	err = resp.Write(w)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 

@@ -57,9 +57,7 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 		name:             "google",
 	}, nil
 }
-func (p Provider) GetName() string {
-	return p.name
-}
+
 func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	url := p.Config.AuthCodeURL(p.oauthStateString, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect) // composing our auth request url
