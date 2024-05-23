@@ -4,10 +4,8 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
-	"math/big"
 	"net/http"
 
-	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/retinotopic/pokerGO/pkg/randfuncs"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -22,27 +20,10 @@ type Provider struct {
 }
 
 func New(clientid string, clientsecret, redirect string) (Provider, error) {
-	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/certs", nil)
+	key, err := GetPublicKey()
 	if err != nil {
 		return Provider{}, err
 	}
-	resp, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return Provider{}, err
-	}
-	set, err := jwk.ParseReader(resp.Body)
-	if err != nil {
-		return Provider{}, err
-	}
-	key, ok1 := set.Get(0)
-	n, ok2 := key.Get("n")
-	e, ok3 := key.Get("e")
-	if !ok1 || !ok2 || !ok3 {
-		return Provider{}, errors.New("jwk parse error")
-	}
-	bn := new(big.Int)
-	BN := bn.SetBytes(n.([]byte))
 	return Provider{
 		Config: oauth2.Config{
 			ClientID:     clientid,
@@ -53,7 +34,7 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 		},
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
 		oauthStateString: randfuncs.RandomString(20, randfuncs.NewSource()),
-		PublicKey:        &rsa.PublicKey{N: BN, E: e.(int)},
+		PublicKey:        key,
 		name:             "google",
 	}, nil
 }

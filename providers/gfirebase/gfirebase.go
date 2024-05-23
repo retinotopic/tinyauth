@@ -30,6 +30,7 @@ type Provider struct {
 func New(webapikey string, credentials string, redirect string) (Provider, error) {
 	fmt.Println(credentials, webapikey)
 	opt := option.WithCredentialsFile(credentials)
+
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		return Provider{}, nil
@@ -38,7 +39,6 @@ func New(webapikey string, credentials string, redirect string) (Provider, error
 	if err != nil {
 		return Provider{}, nil
 	}
-	fmt.Println("vse ok")
 	return Provider{
 		oauthStateString:   randfuncs.RandomString(20, randfuncs.NewSource()),
 		Client:             client,
