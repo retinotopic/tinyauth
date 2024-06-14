@@ -59,11 +59,13 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	req, err := http.NewRequest("POST", p.SendOobCodeURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
 
 	_, err = http.DefaultClient.Do(req)
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
 
@@ -73,17 +75,17 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 		Path:     "/",
 		HttpOnly: true,
 	}
-
+	w.WriteHeader(http.StatusOK)
 	http.SetCookie(w, c)
 
 	return nil
 }
 
-func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) error {
-	tokens := &provider.Tokens{}
+func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
+	tokens := provider.Tokens{}
 	c, err := r.Cookie("email")
 	if err != nil {
-		return err
+		return tokens, err
 	}
 
 	oobCode := r.URL.Query().Get("oobCode")
@@ -93,20 +95,24 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) error
 	form.Add("email", c.Value)
 	req, err := http.NewRequest("POST", p.SignInWithEmailURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
-		return err
+		w.WriteHeader(http.StatusBadRequest)
+		return tokens, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		w.WriteHeader(http.StatusBadRequest)
+		return tokens, err
 	}
 	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
-		return err
+		w.WriteHeader(http.StatusBadRequest)
+		return tokens, err
 	}
 	if len(tokens.RefreshToken) == 0 || len(tokens.Token) == 0 {
-		return fmt.Errorf("tokens is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return tokens, fmt.Errorf("tokens is empty")
 	}
 	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	RefreshToken := http.Cookie{Name: "RefreshToken", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
@@ -120,10 +126,6 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) error
 		HttpOnly: true,
 	}
 	http.SetCookie(w, c)
-
-	err = resp.Write(w)
-	if err != nil {
-		return err
-	}
-	return nil
+	w.WriteHeader(http.StatusOK)
+	return tokens, err
 }
