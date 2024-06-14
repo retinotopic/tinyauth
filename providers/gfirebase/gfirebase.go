@@ -105,7 +105,9 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-
+	if len(tokens.RefreshToken) == 0 || len(tokens.Token) == 0 {
+		return fmt.Errorf("tokens is empty")
+	}
 	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	RefreshToken := http.Cookie{Name: "RefreshToken", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)

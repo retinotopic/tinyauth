@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"net/http"
 
+	"github.com/retinotopic/TinyAuth/provider"
 	"github.com/retinotopic/pokerGO/pkg/randfuncs"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -55,8 +57,14 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) error
 		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
-	Token := http.Cookie{Name: "Token", Value: token.Extra("Token").(string), MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "RefreshToken", Value: token.RefreshToken, HttpOnly: true, Secure: true}
+	tokens := provider.Tokens{}
+	tokens.Token = token.Extra("Token").(string)
+	tokens.RefreshToken = token.RefreshToken
+	if len(tokens.Token) == 0 || len(tokens.RefreshToken) == 0 {
+		return fmt.Errorf("tokens is empty")
+	}
+	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "RefreshToken", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	w.WriteHeader(http.StatusOK)

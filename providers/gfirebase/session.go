@@ -3,6 +3,7 @@ package gfirebase
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -34,7 +35,9 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-
+	if len(tokens.Token) == 0 {
+		return fmt.Errorf("tokens is empty")
+	}
 	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	return nil
