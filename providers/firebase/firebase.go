@@ -63,10 +63,20 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	_, err = http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
+	}
+	data := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return err
+	}
+	_, ok := data["email"]
+	if !ok {
+		return fmt.Errorf("firebase error")
 	}
 
 	c := &http.Cookie{
