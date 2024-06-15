@@ -85,9 +85,9 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 	tokens := provider.Tokens{}
 	c, err := r.Cookie("email")
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-
 	oobCode := r.URL.Query().Get("oobCode")
 
 	form := url.Values{}
@@ -127,5 +127,6 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 	}
 	http.SetCookie(w, c)
 	w.WriteHeader(http.StatusOK)
+
 	return tokens, err
 }

@@ -17,7 +17,7 @@ type Provider struct {
 	name             string
 	Config           oauth2.Config
 	RevokeURL        string
-	oauthStateString string
+	OauthStateString string
 	PublicKey        *rsa.PublicKey
 }
 
@@ -35,21 +35,21 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 			Endpoint:     google.Endpoint,
 		},
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
-		oauthStateString: randfuncs.RandomString(20, randfuncs.NewSource()),
+		OauthStateString: randfuncs.RandomString(20, randfuncs.NewSource()),
 		PublicKey:        key,
 		name:             "google",
 	}, nil
 }
 
 func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
-	url := p.Config.AuthCodeURL(p.oauthStateString, oauth2.AccessTypeOffline)
+	url := p.Config.AuthCodeURL(p.OauthStateString, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect) // composing our auth request url
 	return nil
 }
 
 func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
-	if r.FormValue("state") != p.oauthStateString {
+	if r.FormValue("state") != p.OauthStateString {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, errors.New("invalid oauth state")
 	}
