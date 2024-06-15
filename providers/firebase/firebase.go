@@ -1,4 +1,4 @@
-package gfirebase
+package firebase
 
 import (
 	"context"
