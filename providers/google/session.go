@@ -42,6 +42,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
+
 	if len(tokens.Token) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, fmt.Errorf("tokens is empty")
