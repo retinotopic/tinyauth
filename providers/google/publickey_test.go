@@ -21,7 +21,7 @@ func TestGetPublicKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing JWK set error: %v", err)
 	}
-	key, ok := set.Get(0)
+	key, ok := set.Get(1)
 	if !ok {
 		t.Fatalf("index is out of range")
 	}

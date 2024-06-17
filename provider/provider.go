@@ -5,8 +5,8 @@ import (
 )
 
 type Tokens struct {
-	Token        string `json:"Token"`
-	RefreshToken string `json:"RefreshToken"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 var MapProvider map[string]Provider

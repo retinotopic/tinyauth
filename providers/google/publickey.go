@@ -3,6 +3,7 @@ package google
 import (
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/lestrrat-go/jwx/jwk"
@@ -21,7 +22,7 @@ func GetPublicKey() (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, ok := set.Get(0)
+	key, ok := set.Get(1)
 	if !ok {
 		return nil, errors.New("index is out of range")
 	}
@@ -30,5 +31,6 @@ func GetPublicKey() (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(pkey)
 	return pkey, nil
 }

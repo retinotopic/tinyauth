@@ -17,7 +17,7 @@ import (
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	form := url.Values{}
-	token, err := r.Cookie("RefreshToken")
+	token, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
@@ -37,17 +37,20 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	err = json.NewDecoder(resp.Body).Decode(&tokens)
+	m := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-
-	if len(tokens.Token) == 0 {
+	fmt.Println(m)
+	val, ok := m["id_token"]
+	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, fmt.Errorf("tokens is empty")
 	}
-	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	tokens.Token = val.(string)
+	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	w.WriteHeader(http.StatusOK)
 	return tokens, err
@@ -55,7 +58,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 }
 func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
-	token, err := r.Cookie("RefreshToken")
+	token, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
@@ -81,6 +84,7 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		w.WriteHeader(http.StatusUnauthorized)
 		return "", err
 	}
+	fmt.Println(token.Value, "this")
 	claims, err := jwt.RSACheck([]byte(token.Value), p.PublicKey)
 	if err != nil {
 		key, err := GetPublicKey()
