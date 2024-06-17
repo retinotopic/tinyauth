@@ -14,7 +14,7 @@ import (
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	form := url.Values{}
-	token, err := r.Cookie("RefreshToken")
+	token, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -41,13 +41,13 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, fmt.Errorf("tokens is empty")
 	}
-	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
+	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	w.WriteHeader(http.StatusOK)
 	return tokens, err
 }
 func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
-	c, err := r.Cookie("Token")
+	c, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
@@ -66,7 +66,7 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, error) {
-	c, err := r.Cookie("Token")
+	c, err := r.Cookie("token")
 	if err != nil {
 		return "", err
 	}

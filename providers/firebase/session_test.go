@@ -1,17 +1,17 @@
-package google_test
+package firebase_test
 
 import (
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
-	"net/http/httptest"
-
-	"github.com/retinotopic/TinyAuth/providers/google"
+	"github.com/retinotopic/TinyAuth/providers/firebase"
 )
 
 func TestSession(t *testing.T) {
-	p, err := google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), os.Getenv("REDIRECT"))
+	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"))
 	if err != nil {
 		t.Fatalf("creating provider error: %v", err)
 	}
@@ -23,16 +23,18 @@ func TestSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error refreshing token: %v", err)
 	}
+	fmt.Println(tokens)
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	w = httptest.NewRecorder()
 	c = &http.Cookie{Name: "token", Value: tokens.Token}
 	req.AddCookie(c)
 	c = &http.Cookie{Name: "refresh_token", Value: os.Getenv("REFRESH_TOKEN")}
 	req.AddCookie(c)
-	_, err = p.FetchUser(w, req)
+	sub, err := p.FetchUser(w, req)
 	if err != nil {
 		t.Fatalf("error fetching subject: %v", err)
 	}
+	fmt.Println(sub)
 	err = p.RevokeRefresh(w, req)
 	if err != nil {
 		t.Fatalf("error revoking refresh token: %v", err)

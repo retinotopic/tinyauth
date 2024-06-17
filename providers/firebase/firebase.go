@@ -12,14 +12,12 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"github.com/retinotopic/TinyAuth/provider"
-	"github.com/retinotopic/pokerGO/pkg/randfuncs"
 	"google.golang.org/api/option"
 )
 
 type Provider struct {
 	name               string
 	Client             *auth.Client
-	oauthStateString   string
 	WebApiKey          string
 	RedirectURL        string
 	SendOobCodeURL     string
@@ -40,7 +38,6 @@ func New(webapikey string, credentials string, redirect string) (Provider, error
 		return Provider{}, nil
 	}
 	return Provider{
-		oauthStateString:   randfuncs.RandomString(20, randfuncs.NewSource()),
 		Client:             client,
 		WebApiKey:          webapikey,
 		RedirectURL:        redirect,
@@ -115,11 +112,13 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	err = json.NewDecoder(resp.Body).Decode(&tokens)
+	m := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
+	fmt.Println(m)
 	if len(tokens.RefreshToken) == 0 || len(tokens.Token) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, fmt.Errorf("tokens is empty")
