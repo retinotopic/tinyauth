@@ -20,7 +20,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	}
 	form.Add("refresh_token", token.Value)
 	form.Add("grant_type", "refresh_token")
-	req, err := http.NewRequest("POST", p.RefreshTokenURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", p.RefreshTokenURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
@@ -32,14 +32,21 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	err = json.NewDecoder(resp.Body).Decode(&tokens)
+	m := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
+	tokens.Token, _ = m["idToken"].(string)
 	if len(tokens.Token) == 0 {
+		errstr, err := json.Marshal(m["error"])
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return tokens, err
+		}
 		w.WriteHeader(http.StatusBadRequest)
-		return tokens, fmt.Errorf("tokens is empty")
+		return tokens, fmt.Errorf("%v", string(errstr))
 	}
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)

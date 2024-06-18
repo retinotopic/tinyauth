@@ -11,6 +11,7 @@ import (
 )
 
 func TestSession(t *testing.T) {
+	fmt.Println(os.Getenv("REFRESH_TOKEN"))
 	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"))
 	if err != nil {
 		t.Fatalf("creating provider error: %v", err)

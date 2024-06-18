@@ -3,7 +3,6 @@ package google
 import (
 	"crypto/rsa"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/lestrrat-go/jwx/jwk"
@@ -31,6 +30,5 @@ func GetPublicKey() (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(pkey)
 	return pkey, nil
 }

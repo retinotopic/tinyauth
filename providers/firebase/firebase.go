@@ -2,12 +2,13 @@ package firebase
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -26,7 +27,6 @@ type Provider struct {
 }
 
 func New(webapikey string, credentials string, redirect string) (Provider, error) {
-	fmt.Println(credentials, webapikey)
 	opt := option.WithCredentialsFile(credentials)
 
 	app, err := firebase.NewApp(context.Background(), nil, opt)
@@ -65,15 +65,21 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
-	data := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&data)
+	m := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
-	_, ok := data["email"]
+	_, ok := m["email"]
 	if !ok {
-		return fmt.Errorf("firebase error")
+		errstr, err := json.Marshal(m["error"])
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return err
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("%v", string(errstr))
 	}
 
 	c := &http.Cookie{
@@ -118,10 +124,16 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	fmt.Println(m)
+	tokens.Token = m["idToken"].(string)
+	tokens.RefreshToken = m["refreshToken"].((string))
 	if len(tokens.RefreshToken) == 0 || len(tokens.Token) == 0 {
+		errstr, err := json.Marshal(m["error"])
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return tokens, err
+		}
 		w.WriteHeader(http.StatusBadRequest)
-		return tokens, fmt.Errorf("tokens is empty")
+		return tokens, fmt.Errorf("%v", string(errstr))
 	}
 	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	RefreshToken := http.Cookie{Name: "RefreshToken", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}

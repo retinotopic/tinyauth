@@ -1,6 +1,7 @@
 package firebase_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -29,7 +30,8 @@ func TestFirebase(t *testing.T) {
 		mux.HandleFunc("/CompleteAuth", func(w http.ResponseWriter, r *http.Request) {
 			c := &http.Cookie{Name: "email", Value: os.Getenv("email")}
 			r.AddCookie(c)
-			_, err := p.CompleteAuthFlow(w, r)
+			tok, err := p.CompleteAuthFlow(w, r)
+			fmt.Println(tok)
 			ch <- err
 		})
 		http.ListenAndServe(":8080", mux)

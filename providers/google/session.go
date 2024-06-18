@@ -43,7 +43,6 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	fmt.Println(m)
 	val, ok := m["id_token"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
@@ -84,7 +83,6 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		w.WriteHeader(http.StatusUnauthorized)
 		return "", err
 	}
-	fmt.Println(token.Value, "this")
 	claims, err := jwt.RSACheck([]byte(token.Value), p.PublicKey)
 	if err != nil {
 		key, err := GetPublicKey()
