@@ -19,7 +19,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	form := url.Values{}
 	token, err := r.Cookie("refresh_token")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	form.Add("refresh_token", token.Value)
@@ -28,13 +28,13 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	form.Add("client_secret", p.Config.ClientSecret)
 	req, err := http.NewRequest("POST", google.Endpoint.TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	m := make(map[string]interface{})
@@ -43,12 +43,16 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	val, ok := m["id_token"]
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		return tokens, fmt.Errorf("tokens is empty")
+	tokens.Token, _ = m["id_token"].(string)
+	if len(tokens.Token) == 0 {
+		errstr, err := json.Marshal(m["error"])
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return tokens, err
+		}
+		http.Error(w, string(errstr), http.StatusBadRequest)
+		return tokens, fmt.Errorf("%v", string(errstr))
 	}
-	tokens.Token = val.(string)
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	w.WriteHeader(http.StatusOK)
@@ -59,28 +63,46 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
 	token, err := r.Cookie("refresh_token")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	form.Add("token", token.Value)
 	req, err := http.NewRequest("POST", p.RevokeURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return err
+	}
+
+	m := make(map[string]interface{})
+	err = json.NewDecoder(resp.Body).Decode(&m)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
-	w.WriteHeader(resp.StatusCode)
+	_, ok := m["error"]
+	if ok {
+		errstr, err := json.Marshal(m["error"])
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return err
+		}
+		http.Error(w, string(errstr), http.StatusBadRequest)
+		return fmt.Errorf("%v", string(errstr))
+	}
+
+	w.WriteHeader(http.StatusOK)
 	return nil
 }
 func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, error) {
 	token, err := r.Cookie("token")
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return "", err
 	}
 	claims, err := jwt.RSACheck([]byte(token.Value), p.PublicKey)
@@ -91,25 +113,25 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		}
 		claims, err = jwt.RSACheck([]byte(token.Value), key)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return "", err
 		}
 		*p.PublicKey = *key
 
 	}
 	if !claims.Valid(time.Now()) {
-		w.WriteHeader(http.StatusBadRequest)
-		return "", errors.New("invalid claims")
+		http.Error(w, "invalid jwt claims", http.StatusUnauthorized)
+		return "", errors.New("invalid jwt claims")
 	}
 
 	if claims.Issuer != "https://accounts.google.com" && claims.Issuer != "accounts.google.com" {
-		w.WriteHeader(http.StatusBadRequest)
-		return "", errors.New("invalid issuer")
+		http.Error(w, "invalid jwt claims", http.StatusUnauthorized)
+		return "", errors.New("invalid jwt claims")
 	}
 
 	if !claims.AcceptAudience(p.Config.ClientID) {
-		w.WriteHeader(http.StatusBadRequest)
-		return "", errors.New("invalid audience")
+		http.Error(w, "invalid jwt claims", http.StatusUnauthorized)
+		return "", errors.New("invalid jwt claims")
 	}
 
 	return claims.Subject, nil

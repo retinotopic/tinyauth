@@ -56,19 +56,19 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	req, err := http.NewRequest("POST", p.SendOobCodeURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	m := make(map[string]interface{})
 	err = json.NewDecoder(resp.Body).Decode(&m)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	_, ok := m["email"]
@@ -78,7 +78,7 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 			w.WriteHeader(http.StatusBadRequest)
 			return err
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, string(errstr), http.StatusBadRequest)
 		return fmt.Errorf("%v", string(errstr))
 	}
 
@@ -98,7 +98,7 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 	tokens := provider.Tokens{}
 	c, err := r.Cookie("email")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	oobCode := r.URL.Query().Get("oobCode")
@@ -108,20 +108,20 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 	form.Add("email", c.Value)
 	req, err := http.NewRequest("POST", p.SignInWithEmailURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	m := make(map[string]interface{})
 	err = json.NewDecoder(resp.Body).Decode(&m)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	tokens.Token = m["idToken"].(string)
@@ -132,7 +132,7 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 			w.WriteHeader(http.StatusBadRequest)
 			return tokens, err
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, string(errstr), http.StatusBadRequest)
 		return tokens, fmt.Errorf("%v", string(errstr))
 	}
 	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}

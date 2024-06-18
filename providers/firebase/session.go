@@ -45,7 +45,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 			w.WriteHeader(http.StatusBadRequest)
 			return tokens, err
 		}
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, string(errstr), http.StatusBadRequest)
 		return tokens, fmt.Errorf("%v", string(errstr))
 	}
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}

@@ -50,19 +50,19 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	if r.FormValue("state") != p.OauthStateString {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "The oauth state was missing or invalid", http.StatusBadRequest)
 		return tokens, errors.New("invalid oauth state")
 	}
 	code := r.FormValue("code")
 	token, err := p.Config.Exchange(context.Background(), code)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	tokens.Token = token.Extra("Token").(string)
 	tokens.RefreshToken = token.RefreshToken
 	if len(tokens.Token) == 0 || len(tokens.RefreshToken) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "tokens are empty", http.StatusBadRequest)
 		return tokens, fmt.Errorf("tokens is empty")
 	}
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
