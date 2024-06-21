@@ -135,8 +135,8 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 		http.Error(w, string(errstr), http.StatusBadRequest)
 		return tokens, fmt.Errorf("%v", string(errstr))
 	}
-	Token := http.Cookie{Name: "Token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "RefreshToken", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
+	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	c = &http.Cookie{

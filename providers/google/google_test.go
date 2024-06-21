@@ -3,10 +3,9 @@ package google_test
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
-
-	"net/http/httptest"
 
 	"github.com/retinotopic/TinyAuth/providers/google"
 	"github.com/stretchr/testify/require"
@@ -18,6 +17,7 @@ func TestGoogle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating provider error: %v", err)
 	}
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
@@ -43,6 +43,24 @@ func TestGoogle(t *testing.T) {
 	r.Contains(location.String(), fmt.Sprintf("client_id=%s", os.Getenv("GOOGLE_CLIENT_ID")))
 	r.Contains(location.String(), fmt.Sprintf("state=%s", p.OauthStateString))
 	r.Contains(location.String(), "accounts.google.com/o/oauth2/auth")
-	r.Contains(location.String(), "scope=email")
+	r.Contains(location.String(), "scope=openid")
 	r.Contains(location.String(), "access_type=offline")
+
+	/* You can test it manually if you add -v flag and uncomment this part of the code (the link obtained from t.Log(expectedURL) enter it into the browser)
+	ch := make(chan error, 1)
+	t.Log(expectedURL)
+
+	go func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/completeauth", func(w http.ResponseWriter, r *http.Request) {
+			_, err := p.CompleteAuthFlow(w, r)
+			ch <- err
+		})
+		http.ListenAndServe(":8080", mux)
+	}()
+	err = <-ch
+	if err != nil {
+		t.Fatalf("error completing auth flow: %v", err)
+	}
+	*/
 }

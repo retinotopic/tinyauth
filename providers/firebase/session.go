@@ -38,7 +38,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	tokens.Token, _ = m["idToken"].(string)
+	tokens.Token, _ = m["id_token"].(string)
 	if len(tokens.Token) == 0 {
 		errstr, err := json.Marshal(m["error"])
 		if err != nil {
@@ -54,7 +54,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	return tokens, err
 }
 func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
-	c, err := r.Cookie("refresh_token")
+	c, err := r.Cookie("token")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return err

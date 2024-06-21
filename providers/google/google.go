@@ -31,7 +31,7 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 			ClientID:     clientid,
 			ClientSecret: clientsecret,
 			RedirectURL:  redirect,
-			Scopes:       []string{"email openid"},
+			Scopes:       []string{"openid email"},
 			Endpoint:     google.Endpoint,
 		},
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
@@ -54,17 +54,19 @@ func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (prov
 		return tokens, errors.New("invalid oauth state")
 	}
 	code := r.FormValue("code")
+	fmt.Println(code)
 	token, err := p.Config.Exchange(context.Background(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
-	tokens.Token = token.Extra("Token").(string)
+	tokens.Token = token.Extra("id_token").(string)
 	tokens.RefreshToken = token.RefreshToken
 	if len(tokens.Token) == 0 || len(tokens.RefreshToken) == 0 {
 		http.Error(w, "tokens are empty", http.StatusBadRequest)
 		return tokens, fmt.Errorf("tokens is empty")
 	}
+	fmt.Println(tokens)
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
