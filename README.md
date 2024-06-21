@@ -1,2 +1,2 @@
 # TinyAuth
-stateless oauth library, still in development
+simple oauth2 library. Current providers: google, firebase

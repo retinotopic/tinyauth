@@ -107,7 +107,7 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 	}
 	claims, err := jwt.RSACheck([]byte(token.Value), p.PublicKey)
 	if err != nil {
-		key, err := GetPublicKey()
+		key, err := GetPublicKey(1)
 		if err != nil {
 			return "", err
 		}

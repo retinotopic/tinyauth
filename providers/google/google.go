@@ -22,7 +22,7 @@ type Provider struct {
 }
 
 func New(clientid string, clientsecret, redirect string) (Provider, error) {
-	key, err := GetPublicKey()
+	key, err := GetPublicKey(1)
 	if err != nil {
 		return Provider{}, err
 	}

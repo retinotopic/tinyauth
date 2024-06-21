@@ -8,7 +8,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 )
 
-func GetPublicKey() (*rsa.PublicKey, error) {
+func GetPublicKey(index int) (*rsa.PublicKey, error) {
 	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/certs", nil)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func GetPublicKey() (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, ok := set.Get(1)
+	key, ok := set.Get(index)
 	if !ok {
 		return nil, errors.New("index is out of range")
 	}
