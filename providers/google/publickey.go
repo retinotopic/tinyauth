@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/pascaldekloe/jwt"
 )
 
 func GetPublicKey(index int) (*rsa.PublicKey, error) {
@@ -31,4 +32,23 @@ func GetPublicKey(index int) (*rsa.PublicKey, error) {
 		return nil, err
 	}
 	return pkey, nil
+}
+func VerifyToken(tokenValue []byte, currentKey *rsa.PublicKey) (*jwt.Claims, error) {
+	if claims, err := jwt.RSACheck(tokenValue, currentKey); err == nil {
+		return claims, nil
+	}
+
+	for i := 0; i < 2; i++ {
+		newKey, err := GetPublicKey(i)
+		if err != nil {
+			continue
+		}
+
+		if claims, err := jwt.RSACheck(tokenValue, newKey); err == nil {
+			*currentKey = *newKey
+			return claims, nil
+		}
+	}
+
+	return nil, errors.New("failed to verify token with all available keys")
 }
