@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pascaldekloe/jwt"
 	"github.com/retinotopic/TinyAuth/provider"
 	"golang.org/x/oauth2/google"
 )
@@ -104,7 +105,7 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return "", err
 	}
-	claims, err := VerifyToken([]byte(token.Value), p.PublicKey)
+	claims, err := p.VerifyToken([]byte(token.Value))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -127,4 +128,23 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 	}
 
 	return claims.Subject, nil
+}
+func (p Provider) VerifyToken(tokenValue []byte) (*jwt.Claims, error) {
+	if claims, err := jwt.RSACheck(tokenValue, p.PublicKey); err == nil {
+		return claims, nil
+	}
+
+	for i := 0; i < 2; i++ {
+		newKey, err := GetPublicKey(i)
+		if err != nil {
+			continue
+		}
+
+		if claims, err := jwt.RSACheck(tokenValue, newKey); err == nil {
+			*p.PublicKey = *newKey
+			return claims, nil
+		}
+	}
+
+	return nil, errors.New("failed to verify token with all available keys")
 }
