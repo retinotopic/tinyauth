@@ -23,6 +23,10 @@ func TestSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error refreshing token: %v", err)
 	}
+	_, err = p.VerifyToken([]byte(tokens.Token))
+	if err != nil {
+		t.Fatalf("error verifying token: %v", err)
+	}
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	w = httptest.NewRecorder()
 	c = &http.Cookie{Name: "token", Value: tokens.Token}
