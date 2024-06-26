@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/retinotopic/TinyAuth/provider"
 	"github.com/retinotopic/TinyAuth/providers/google"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -17,7 +18,8 @@ func TestGoogle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating provider error: %v", err)
 	}
-
+	r := require.New(t)
+	r.Implements((*provider.Provider)(nil), p)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
@@ -38,7 +40,6 @@ func TestGoogle(t *testing.T) {
 	if location.String() != expectedURL {
 		t.Errorf("expected redirect to %s, got %s", expectedURL, location.String())
 	}
-	r := require.New(t)
 	r.NoError(err)
 	r.Contains(location.String(), fmt.Sprintf("client_id=%s", os.Getenv("GOOGLE_CLIENT_ID")))
 	r.Contains(location.String(), fmt.Sprintf("state=%s", p.OauthStateString))

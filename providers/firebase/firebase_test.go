@@ -7,7 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/retinotopic/TinyAuth/provider"
 	"github.com/retinotopic/TinyAuth/providers/firebase"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFirebase(t *testing.T) {
@@ -16,6 +18,8 @@ func TestFirebase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating providing error: %v", err)
 	}
+	r := require.New(t)
+	r.Implements((*provider.Provider)(nil), p)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 	req.Form = url.Values{}
@@ -26,7 +30,7 @@ func TestFirebase(t *testing.T) {
 	}
 	go func() {
 		mux := http.NewServeMux()
-		mux.HandleFunc("/CompleteAuth", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/completeauth", func(w http.ResponseWriter, r *http.Request) {
 			c := &http.Cookie{Name: "email", Value: os.Getenv("email")}
 			r.AddCookie(c)
 			_, err := p.CompleteAuth(w, r)
