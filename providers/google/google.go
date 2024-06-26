@@ -21,6 +21,9 @@ type Provider struct {
 	PublicKey        *rsa.PublicKey
 }
 
+/*
+Creates Google OAuth2 OIDC provider (SSO).
+*/
 func New(clientid string, clientsecret, redirect string) (Provider, error) {
 	key, err := GetPublicKey(1)
 	if err != nil {
@@ -31,7 +34,7 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 			ClientID:     clientid,
 			ClientSecret: clientsecret,
 			RedirectURL:  redirect,
-			Scopes:       []string{"openid email"},
+			Scopes:       []string{"openid"},
 			Endpoint:     google.Endpoint,
 		},
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
@@ -41,13 +44,21 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 	}, nil
 }
 
-func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
+/*
+BeginAuth starts the Google OAuth2 authorization process.
+It redirects the user to the Google authorization page.
+*/
+func (p Provider) BeginAuth(w http.ResponseWriter, r *http.Request) error {
 	url := p.Config.AuthCodeURL(p.OauthStateString, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect) // composing our auth request url
 	return nil
 }
 
-func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
+/*
+CompleteAuth finishes the Google OAuth2 authorization process.
+It exchanges the authorization code for refresh token and id token.
+*/
+func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	if r.FormValue("state") != p.OauthStateString {
 		http.Error(w, "The oauth state was missing or invalid", http.StatusBadRequest)

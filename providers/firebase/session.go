@@ -11,6 +11,10 @@ import (
 	"github.com/retinotopic/TinyAuth/provider"
 )
 
+/*
+Refresh renews the ID tokens using the refresh token.
+It sends a request to the Firebase refresh token endpoint.
+*/
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	form := url.Values{}
@@ -53,6 +57,10 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	w.WriteHeader(http.StatusOK)
 	return tokens, err
 }
+
+/*
+RevokeRefresh verifies the ID token and uses the Firebase Admin SDK to revoke the refresh tokens.
+*/
 func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	c, err := r.Cookie("token")
 	if err != nil {
@@ -72,6 +80,10 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
+
+/*
+FetchUser verifies the ID token and extracts the user ID.
+*/
 func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, error) {
 	c, err := r.Cookie("token")
 	if err != nil {

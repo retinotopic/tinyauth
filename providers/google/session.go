@@ -14,6 +14,10 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+/*
+Refresh renews the id token using the refresh token for Google OAuth2.
+It sends a request to the Google token endpoint and updates the id token cookie.
+*/
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	form := url.Values{}
@@ -59,6 +63,10 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	return tokens, err
 
 }
+
+/*
+RevokeRefresh sends a request to the Google revoke endpoint to invalidate the refresh token.
+*/
 func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
 	token, err := r.Cookie("refresh_token")
@@ -99,6 +107,10 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
+
+/*
+FetchUser verifies the ID token and extracts the user ID (subject) from the claims.
+*/
 func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, error) {
 	token, err := r.Cookie("token")
 	if err != nil {
@@ -129,6 +141,11 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 
 	return claims.Subject, nil
 }
+
+/*
+VerifyToken verifies the JWT token using the Google public key.
+It attempts to verify the token with the current public key locally and, if unsuccessful, tries to fetch and use new public keys.
+*/
 func (p Provider) VerifyToken(tokenValue []byte) (*jwt.Claims, error) {
 	if claims, err := jwt.RSACheck(tokenValue, p.PublicKey); err == nil {
 		return claims, nil

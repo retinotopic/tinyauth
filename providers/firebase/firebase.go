@@ -26,6 +26,10 @@ type Provider struct {
 	RefreshTokenURL    string
 }
 
+/*
+Creates firebase OIDC provider (Sign In via Email link).
+In the "credentials" parameter you need to specify the path to the json file with firebase credentials
+*/
 func New(webapikey string, credentials string, redirect string) (Provider, error) {
 	opt := option.WithCredentialsFile(credentials)
 
@@ -48,7 +52,8 @@ func New(webapikey string, credentials string, redirect string) (Provider, error
 	}, nil
 }
 
-func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
+// Sends a "Magic link" to the Email entered in the form
+func (p Provider) BeginAuth(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
 	form.Add("requestType", "EMAIL_SIGNIN")
 	form.Add("email", r.FormValue("email"))
@@ -94,7 +99,11 @@ func (p Provider) BeginAuthFlow(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (p Provider) CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
+/*
+CompleteAuth finishes the sign in process after the user clicks the email link.
+It verifies the OOB code and retrieves tokens.
+*/
+func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
 	tokens := provider.Tokens{}
 	c, err := r.Cookie("email")
 	if err != nil {

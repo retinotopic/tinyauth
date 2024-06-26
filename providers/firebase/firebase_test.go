@@ -20,7 +20,7 @@ func TestFirebase(t *testing.T) {
 	w := httptest.NewRecorder()
 	req.Form = url.Values{}
 	req.Form.Add("email", os.Getenv("EMAIL"))
-	err = p.BeginAuthFlow(w, req)
+	err = p.BeginAuth(w, req)
 	if err != nil {
 		t.Fatalf("BeginAuthFlow returned an error: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestFirebase(t *testing.T) {
 		mux.HandleFunc("/CompleteAuth", func(w http.ResponseWriter, r *http.Request) {
 			c := &http.Cookie{Name: "email", Value: os.Getenv("email")}
 			r.AddCookie(c)
-			_, err := p.CompleteAuthFlow(w, r)
+			_, err := p.CompleteAuth(w, r)
 			ch <- err
 		})
 		http.ListenAndServe(":8080", mux)

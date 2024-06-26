@@ -1,2 +1,2 @@
 # TinyAuth
-simple oauth2 library. Current providers: google, firebase
+simple oauth2 OIDC library. Current providers: google, firebase (email sign-in)

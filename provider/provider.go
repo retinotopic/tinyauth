@@ -12,8 +12,8 @@ type Tokens struct {
 var MapProvider map[string]Provider
 
 type Provider interface {
-	BeginAuthFlow(w http.ResponseWriter, r *http.Request) error
-	CompleteAuthFlow(w http.ResponseWriter, r *http.Request) (Tokens, error)
+	BeginAuth(w http.ResponseWriter, r *http.Request) error
+	CompleteAuth(w http.ResponseWriter, r *http.Request) (Tokens, error)
 	FetchUser(w http.ResponseWriter, r *http.Request) (string, error)
 	Refresh(w http.ResponseWriter, r *http.Request) (Tokens, error)
 	RevokeRefresh(w http.ResponseWriter, r *http.Request) error

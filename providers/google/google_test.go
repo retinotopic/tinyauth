@@ -21,7 +21,7 @@ func TestGoogle(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
-	err = p.BeginAuthFlow(w, req)
+	err = p.BeginAuth(w, req)
 	if err != nil {
 		t.Fatalf("BeginAuthFlow returned an error: %v", err)
 	}
@@ -47,13 +47,14 @@ func TestGoogle(t *testing.T) {
 	r.Contains(location.String(), "access_type=offline")
 
 	/* You can test it manually if you add -v flag and uncomment this part of the code (the link obtained from t.Log(expectedURL) enter it into the browser)
+	and change the redirect to your own
 	ch := make(chan error, 1)
 	t.Log(expectedURL)
 
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/completeauth", func(w http.ResponseWriter, r *http.Request) {
-			_, err := p.CompleteAuthFlow(w, r)
+			_, err := p.CompleteAuth(w, r)
 			ch <- err
 		})
 		http.ListenAndServe(":8080", mux)
