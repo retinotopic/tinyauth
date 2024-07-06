@@ -9,8 +9,6 @@ type Tokens struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-var MapProvider map[string]Provider
-
 type Provider interface {
 	BeginAuth(w http.ResponseWriter, r *http.Request) error
 	CompleteAuth(w http.ResponseWriter, r *http.Request) (Tokens, error)
