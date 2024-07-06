@@ -12,7 +12,7 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
-	"github.com/retinotopic/TinyAuth/provider"
+	"github.com/retinotopic/tinyauth/provider"
 	"google.golang.org/api/option"
 )
 

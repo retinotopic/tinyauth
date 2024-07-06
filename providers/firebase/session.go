@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/retinotopic/TinyAuth/provider"
+	"github.com/retinotopic/tinyauth/provider"
 )
 
 /*

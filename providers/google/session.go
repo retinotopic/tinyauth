@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/pascaldekloe/jwt"
-	"github.com/retinotopic/TinyAuth/provider"
+	"github.com/retinotopic/tinyauth/provider"
 	"golang.org/x/oauth2/google"
 )
 

@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/retinotopic/TinyAuth/provider"
-	"github.com/retinotopic/TinyAuth/providers/google"
+	"github.com/retinotopic/tinyauth/provider"
+	"github.com/retinotopic/tinyauth/providers/google"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )

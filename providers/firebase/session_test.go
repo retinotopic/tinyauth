@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/retinotopic/TinyAuth/providers/firebase"
+	"github.com/retinotopic/tinyauth/providers/firebase"
 )
 
 func TestSession(t *testing.T) {

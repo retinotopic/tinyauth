@@ -7,7 +7,7 @@ import (
 
 	"net/http/httptest"
 
-	"github.com/retinotopic/TinyAuth/providers/google"
+	"github.com/retinotopic/tinyauth/providers/google"
 )
 
 func TestSession(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/retinotopic/TinyAuth/provider"
 	"github.com/retinotopic/pokerGO/pkg/randfuncs"
+	"github.com/retinotopic/tinyauth/provider"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

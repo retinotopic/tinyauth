@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/retinotopic/TinyAuth/provider"
-	"github.com/retinotopic/TinyAuth/providers/firebase"
+	"github.com/retinotopic/tinyauth/provider"
+	"github.com/retinotopic/tinyauth/providers/firebase"
 	"github.com/stretchr/testify/require"
 )
 
