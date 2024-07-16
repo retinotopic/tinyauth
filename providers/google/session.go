@@ -118,27 +118,18 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		return "", err
 	}
 	claims, err := p.VerifyToken([]byte(token.Value))
-
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return "", err
+		tokens, err := p.Refresh(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return "", err
+		}
+		claims, err = p.VerifyToken([]byte(tokens.Token))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return "", err
+		}
 	}
-
-	if !claims.Valid(time.Now()) {
-		http.Error(w, "invalid jwt claims", http.StatusUnauthorized)
-		return "", errors.New("invalid jwt claims")
-	}
-
-	if claims.Issuer != "https://accounts.google.com" && claims.Issuer != "accounts.google.com" {
-		http.Error(w, "invalid jwt claims", http.StatusUnauthorized)
-		return "", errors.New("invalid jwt claims")
-	}
-
-	if !claims.AcceptAudience(p.Config.ClientID) {
-		http.Error(w, "invalid jwt claims", http.StatusUnauthorized)
-		return "", errors.New("invalid jwt claims")
-	}
-
 	return claims.Subject, nil
 }
 
@@ -146,8 +137,13 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 VerifyToken verifies the JWT token using the Google public key.
 It attempts to verify the token with the current public key locally and, if unsuccessful, tries to fetch and use new public keys.
 */
-func (p Provider) VerifyToken(tokenValue []byte) (*jwt.Claims, error) {
-	if claims, err := jwt.RSACheck(tokenValue, p.PublicKey); err == nil {
+func (p Provider) VerifyToken(tokenValue []byte) (claims *jwt.Claims, err error) {
+	defer func() {
+		if !claims.Valid(time.Now()) || (claims.Issuer != "https://accounts.google.com" && claims.Issuer != "accounts.google.com") || !claims.AcceptAudience(p.Config.ClientID) {
+			err = errors.New("invalid jwt claims")
+		}
+	}()
+	if claims, err = jwt.RSACheck(tokenValue, p.PublicKey); err == nil {
 		return claims, nil
 	}
 
@@ -162,6 +158,5 @@ func (p Provider) VerifyToken(tokenValue []byte) (*jwt.Claims, error) {
 			return claims, nil
 		}
 	}
-
-	return nil, errors.New("failed to verify token with all available keys")
+	return
 }

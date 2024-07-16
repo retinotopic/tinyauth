@@ -26,14 +26,14 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	form.Add("grant_type", "refresh_token")
 	req, err := http.NewRequest("POST", p.RefreshTokenURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err
 	}
 	m := make(map[string]interface{})
@@ -64,17 +64,17 @@ RevokeRefresh verifies the ID token and uses the Firebase Admin SDK to revoke th
 func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 	c, err := r.Cookie("token")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	token, err := p.Client.VerifyIDToken(context.Background(), c.Value)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	err = p.Client.RevokeRefreshTokens(context.Background(), token.UID)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
 	w.WriteHeader(http.StatusOK)
@@ -91,7 +91,16 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 	}
 	token, err := p.Client.VerifyIDToken(context.Background(), c.Value)
 	if err != nil {
-		return "", err
+		tokens, err := p.Refresh(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return "", err
+		}
+		token, err = p.Client.VerifyIDToken(context.Background(), tokens.Token)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return "", err
+		}
 	}
 	return token.UID, nil
 }
