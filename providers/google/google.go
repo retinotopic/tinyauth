@@ -14,7 +14,6 @@ import (
 )
 
 type Provider struct {
-	name             string
 	Config           oauth2.Config
 	RevokeURL        string
 	OauthStateString string
@@ -40,7 +39,6 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
 		OauthStateString: randfuncs.RandomString(20, randfuncs.NewSource()),
 		PublicKey:        key,
-		name:             "google",
 	}, nil
 }
 

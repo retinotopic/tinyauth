@@ -17,7 +17,6 @@ import (
 )
 
 type Provider struct {
-	name               string
 	Client             *auth.Client
 	WebApiKey          string
 	RedirectURL        string
@@ -48,7 +47,6 @@ func New(webapikey string, credentials string, redirect string) (Provider, error
 		SendOobCodeURL:     "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=",
 		SignInWithEmailURL: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithEmailLink?key=",
 		RefreshTokenURL:    "https://securetoken.googleapis.com/v1/token?key=",
-		name:               "firebase",
 	}, nil
 }
 
