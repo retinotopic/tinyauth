@@ -10,7 +10,7 @@ import (
 )
 
 func TestSession(t *testing.T) {
-	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"))
+	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"), "/refresh")
 	if err != nil {
 		t.Fatalf("creating provider error: %v", err)
 	}

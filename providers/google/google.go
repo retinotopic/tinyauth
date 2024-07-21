@@ -18,12 +18,13 @@ type Provider struct {
 	RevokeURL        string
 	OauthStateString string
 	PublicKey        *rsa.PublicKey
+	RefreshPath      string
 }
 
 /*
 Creates Google OAuth2 OIDC provider (SSO).
 */
-func New(clientid string, clientsecret, redirect string) (Provider, error) {
+func New(clientid string, clientsecret, redirect string, refreshPath string) (Provider, error) {
 	key, err := GetPublicKey(1)
 	if err != nil {
 		return Provider{}, err
@@ -39,6 +40,7 @@ func New(clientid string, clientsecret, redirect string) (Provider, error) {
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
 		OauthStateString: randfuncs.RandomString(20, randfuncs.NewSource()),
 		PublicKey:        key,
+		RefreshPath:      refreshPath,
 	}, nil
 }
 
@@ -77,7 +79,7 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 	}
 	fmt.Println(tokens)
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	w.WriteHeader(http.StatusOK)

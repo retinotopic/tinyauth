@@ -23,13 +23,14 @@ type Provider struct {
 	SendOobCodeURL     string
 	SignInWithEmailURL string
 	RefreshTokenURL    string
+	RefreshPath        string
 }
 
 /*
 Creates firebase OIDC provider (Sign In via Email link).
 In the "credentials" parameter you need to specify the path to the json file with firebase credentials
 */
-func New(webapikey string, credentials string, redirect string) (Provider, error) {
+func New(webapikey string, credentials string, redirect string, refreshPath string) (Provider, error) {
 	opt := option.WithCredentialsFile(credentials)
 
 	app, err := firebase.NewApp(context.Background(), nil, opt)
@@ -47,6 +48,7 @@ func New(webapikey string, credentials string, redirect string) (Provider, error
 		SendOobCodeURL:     "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=",
 		SignInWithEmailURL: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithEmailLink?key=",
 		RefreshTokenURL:    "https://securetoken.googleapis.com/v1/token?key=",
+		RefreshPath:        refreshPath,
 	}, nil
 }
 
@@ -143,7 +145,7 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 		return tokens, fmt.Errorf("%v", string(errstr))
 	}
 	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	c = &http.Cookie{

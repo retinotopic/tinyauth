@@ -14,7 +14,7 @@ import (
 
 func TestFirebase(t *testing.T) {
 	ch := make(chan error, 1)
-	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"))
+	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"), "/refresh")
 	if err != nil {
 		t.Fatalf("creating providing error: %v", err)
 	}
