@@ -1,6 +1,7 @@
 package google
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -117,14 +118,14 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return "", err
 	}
-	claims, err := p.VerifyToken([]byte(token.Value))
+	claims, err := p.VerifyToken(r.Context(), []byte(token.Value))
 	if err != nil {
 		tokens, err := p.Refresh(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return "", err
 		}
-		claims, err = p.VerifyToken([]byte(tokens.Token))
+		claims, err = p.VerifyToken(r.Context(), []byte(tokens.Token))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return "", err
@@ -137,7 +138,7 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 VerifyToken verifies the JWT token using the Google public key.
 It attempts to verify the token with the current public key locally and, if unsuccessful, tries to fetch and use new public keys.
 */
-func (p Provider) VerifyToken(tokenValue []byte) (claims *jwt.Claims, err error) {
+func (p Provider) VerifyToken(ctx context.Context, tokenValue []byte) (claims *jwt.Claims, err error) {
 	defer func() {
 		if !claims.Valid(time.Now()) || (claims.Issuer != "https://accounts.google.com" && claims.Issuer != "accounts.google.com") || !claims.AcceptAudience(p.Config.ClientID) {
 			err = errors.New("invalid jwt claims")
@@ -148,7 +149,7 @@ func (p Provider) VerifyToken(tokenValue []byte) (claims *jwt.Claims, err error)
 	}
 
 	for i := 0; i < 2; i++ {
-		newKey, err := GetPublicKey(i)
+		newKey, err := GetPublicKey(ctx, i)
 		if err != nil {
 			continue
 		}

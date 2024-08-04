@@ -24,8 +24,8 @@ type Provider struct {
 /*
 Creates Google OAuth2 OIDC provider (SSO).
 */
-func New(clientid string, clientsecret, redirect string, refreshPath string) (Provider, error) {
-	key, err := GetPublicKey(1)
+func New(ctx context.Context, clientid string, clientsecret, redirect string, refreshPath string) (Provider, error) {
+	key, err := GetPublicKey(ctx, 1)
 	if err != nil {
 		return Provider{}, err
 	}
@@ -66,7 +66,7 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 	}
 	code := r.FormValue("code")
 	fmt.Println(code)
-	token, err := p.Config.Exchange(context.Background(), code)
+	token, err := p.Config.Exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return tokens, err

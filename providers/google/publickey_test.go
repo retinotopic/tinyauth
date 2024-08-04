@@ -1,19 +1,23 @@
 package google_test
 
 import (
+	"context"
 	"crypto/rsa"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/lestrrat-go/jwx/jwk"
 )
 
 func TestGetPublicKey(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/certs", nil)
 	if err != nil {
 		t.Fatalf("creating request error: %v", err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		t.Fatalf("http request error: %v", err)
 	}

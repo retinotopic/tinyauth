@@ -1,11 +1,13 @@
 package google_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/retinotopic/tinyauth/provider"
 	"github.com/retinotopic/tinyauth/providers/google"
@@ -14,7 +16,9 @@ import (
 )
 
 func TestGoogle(t *testing.T) {
-	p, err := google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), os.Getenv("REDIRECT"), "/refresh")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	p, err := google.New(ctx, os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), os.Getenv("REDIRECT"), "/refresh")
 	if err != nil {
 		t.Fatalf("creating provider error: %v", err)
 	}
@@ -23,7 +27,7 @@ func TestGoogle(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
-	err = p.BeginAuth(w, req)
+	err = p.BeginAuth(w, req.WithContext(ctx))
 	if err != nil {
 		t.Fatalf("BeginAuthFlow returned an error: %v", err)
 	}

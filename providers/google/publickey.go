@@ -1,6 +1,7 @@
 package google
 
 import (
+	"context"
 	"crypto/rsa"
 	"errors"
 	"net/http"
@@ -8,12 +9,12 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 )
 
-func GetPublicKey(index int) (*rsa.PublicKey, error) {
+func GetPublicKey(ctx context.Context, index int) (*rsa.PublicKey, error) {
 	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/certs", nil)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
