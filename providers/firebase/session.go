@@ -1,7 +1,6 @@
 package firebase
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -67,12 +66,12 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
-	token, err := p.Client.VerifyIDToken(context.Background(), c.Value)
+	token, err := p.Client.VerifyIDToken(r.Context(), c.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
-	err = p.Client.RevokeRefreshTokens(context.Background(), token.UID)
+	err = p.Client.RevokeRefreshTokens(r.Context(), token.UID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
@@ -89,14 +88,14 @@ func (p Provider) FetchUser(w http.ResponseWriter, r *http.Request) (string, err
 	if err != nil {
 		return "", err
 	}
-	token, err := p.Client.VerifyIDToken(context.Background(), c.Value)
+	token, err := p.Client.VerifyIDToken(r.Context(), c.Value)
 	if err != nil {
 		tokens, err := p.Refresh(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return "", err
 		}
-		token, err = p.Client.VerifyIDToken(context.Background(), tokens.Token)
+		token, err = p.Client.VerifyIDToken(r.Context(), tokens.Token)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return "", err

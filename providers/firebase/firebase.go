@@ -30,14 +30,14 @@ type Provider struct {
 Creates firebase OIDC provider (Sign In via Email link).
 In the "credentials" parameter you need to specify the path to the json file with firebase credentials
 */
-func New(webapikey string, credentials string, redirect string, refreshPath string) (Provider, error) {
+func New(ctx context.Context, webapikey string, credentials string, redirect string, refreshPath string) (Provider, error) {
 	opt := option.WithCredentialsFile(credentials)
 
-	app, err := firebase.NewApp(context.Background(), nil, opt)
+	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		return Provider{}, nil
 	}
-	client, err := app.Auth(context.Background())
+	client, err := app.Auth(ctx)
 	if err != nil {
 		return Provider{}, nil
 	}

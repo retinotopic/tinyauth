@@ -1,11 +1,13 @@
 package firebase_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/retinotopic/tinyauth/provider"
 	"github.com/retinotopic/tinyauth/providers/firebase"
@@ -14,7 +16,9 @@ import (
 
 func TestFirebase(t *testing.T) {
 	ch := make(chan error, 1)
-	p, err := firebase.New(os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"), "/refresh")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	p, err := firebase.New(ctx, os.Getenv("WEB_API_KEY"), os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), os.Getenv("REDIRECT"), "/refresh")
 	if err != nil {
 		t.Fatalf("creating providing error: %v", err)
 	}
@@ -24,7 +28,7 @@ func TestFirebase(t *testing.T) {
 	w := httptest.NewRecorder()
 	req.Form = url.Values{}
 	req.Form.Add("email", os.Getenv("EMAIL"))
-	err = p.BeginAuth(w, req)
+	err = p.BeginAuth(w, req.WithContext(ctx))
 	if err != nil {
 		t.Fatalf("BeginAuthFlow returned an error: %v", err)
 	}
