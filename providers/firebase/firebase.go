@@ -16,6 +16,12 @@ import (
 	"google.golang.org/api/option"
 )
 
+type tokens struct {
+	Token        string `json:"idToken"`
+	RefreshToken string `json:"refreshToken"`
+	Email        string `json:"email"`
+}
+
 type Provider struct {
 	Client             *auth.Client
 	WebApiKey          string
@@ -55,6 +61,7 @@ func New(ctx context.Context, webapikey string, credentials string, redirect str
 // Sends a "Magic link" to the Email entered in the form
 func (p Provider) BeginAuth(w http.ResponseWriter, r *http.Request) error {
 	form := url.Values{}
+	tokens := tokens{}
 	form.Add("requestType", "EMAIL_SIGNIN")
 	form.Add("email", r.FormValue("email"))
 	form.Add("continueUrl", p.RedirectURL)
@@ -70,21 +77,15 @@ func (p Provider) BeginAuth(w http.ResponseWriter, r *http.Request) error {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
-	m := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&m)
+
+	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
-	_, ok := m["email"]
-	if !ok {
-		errstr, err := json.Marshal(m["error"])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return err
-		}
-		http.Error(w, string(errstr), http.StatusBadRequest)
-		return fmt.Errorf("%v", string(errstr))
+	if resp.StatusCode != 200 {
+		http.Error(w, resp.Status, resp.StatusCode)
+		return fmt.Errorf("%v", resp.Status)
 	}
 
 	c := &http.Cookie{
@@ -104,11 +105,12 @@ CompleteAuth finishes the sign in process after the user clicks the email link.
 It verifies the OOB code and retrieves tokens.
 */
 func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
-	tokens := provider.Tokens{}
+	t := provider.Tokens{}
+	tkns := tokens{}
 	c, err := r.Cookie("email")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
 	oobCode := r.URL.Query().Get("oobCode")
 
@@ -118,34 +120,32 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 	req, err := http.NewRequest("POST", p.SignInWithEmailURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
-	m := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&m)
+
+	err = json.NewDecoder(resp.Body).Decode(&tkns)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
-	tokens.Token = m["idToken"].(string)
-	tokens.RefreshToken = m["refreshToken"].((string))
-	if len(tokens.RefreshToken) == 0 || len(tokens.Token) == 0 {
-		errstr, err := json.Marshal(m["error"])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return tokens, err
-		}
-		http.Error(w, string(errstr), http.StatusBadRequest)
-		return tokens, fmt.Errorf("%v", string(errstr))
+	err = json.NewDecoder(resp.Body).Decode(&tkns)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return t, err
 	}
-	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
+	if resp.StatusCode != 200 {
+		http.Error(w, resp.Status, resp.StatusCode)
+		return t, fmt.Errorf("%v", resp.Status)
+	}
+	Token := http.Cookie{Name: "token", Value: tkns.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "refresh_token", Value: tkns.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	c = &http.Cookie{
@@ -158,5 +158,5 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 	http.SetCookie(w, c)
 	w.WriteHeader(http.StatusOK)
 
-	return tokens, err
+	return t, err
 }

@@ -41,7 +41,7 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 		w.WriteHeader(http.StatusBadRequest)
 		return tokens, err
 	}
-	tokens.Token, _ = m["id_token"].(string)
+	tokens.Token, _ = m["idToken"].(string)
 	if len(tokens.Token) == 0 {
 		errstr, err := json.Marshal(m["error"])
 		if err != nil {
