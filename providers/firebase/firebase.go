@@ -16,6 +16,7 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Private tokens for easy parsing
 type tokens struct {
 	Token        string `json:"idToken"`
 	RefreshToken string `json:"refreshToken"`
@@ -77,15 +78,14 @@ func (p Provider) BeginAuth(w http.ResponseWriter, r *http.Request) error {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}
-
+	if resp.StatusCode != 200 {
+		http.Error(w, resp.Status, resp.StatusCode)
+		return fmt.Errorf("%v", resp.Status)
+	}
 	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
-	}
-	if resp.StatusCode != 200 {
-		http.Error(w, resp.Status, resp.StatusCode)
-		return fmt.Errorf("%v", resp.Status)
 	}
 
 	c := &http.Cookie{
@@ -129,23 +129,19 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return t, err
 	}
-
-	err = json.NewDecoder(resp.Body).Decode(&tkns)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return t, err
-	}
-	err = json.NewDecoder(resp.Body).Decode(&tkns)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return t, err
-	}
 	if resp.StatusCode != 200 {
 		http.Error(w, resp.Status, resp.StatusCode)
 		return t, fmt.Errorf("%v", resp.Status)
 	}
-	Token := http.Cookie{Name: "token", Value: tkns.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "refresh_token", Value: tkns.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
+	err = json.NewDecoder(resp.Body).Decode(&tkns)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return t, err
+	}
+	t.Token = tkns.Token
+	t.RefreshToken = tkns.RefreshToken
+	Token := http.Cookie{Name: "token", Value: t.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "refresh_token", Value: t.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	c = &http.Cookie{

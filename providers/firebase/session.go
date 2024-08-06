@@ -15,7 +15,8 @@ Refresh renews the ID tokens using the refresh token.
 It sends a request to the Firebase refresh token endpoint.
 */
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
-	tokens := provider.Tokens{}
+	t := provider.Tokens{}
+	tkns := tokens{}
 	form := url.Values{}
 	token, err := r.Cookie("refresh_token")
 	if err != nil {
@@ -26,35 +27,29 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	req, err := http.NewRequest("POST", p.RefreshTokenURL+p.WebApiKey, strings.NewReader(form.Encode()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
-	m := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&m)
+	if resp.StatusCode != 200 {
+		http.Error(w, resp.Status, resp.StatusCode)
+		return t, fmt.Errorf("%v", resp.Status)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&tkns)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return tokens, err
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return t, err
 	}
-	tokens.Token, _ = m["idToken"].(string)
-	if len(tokens.Token) == 0 {
-		errstr, err := json.Marshal(m["error"])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return tokens, err
-		}
-		http.Error(w, string(errstr), http.StatusBadRequest)
-		return tokens, fmt.Errorf("%v", string(errstr))
-	}
-	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
+	t.Token = tkns.Token
+	Token := http.Cookie{Name: "token", Value: t.Token, MaxAge: 3600, Path: "/", HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	w.WriteHeader(http.StatusOK)
-	return tokens, err
+	return t, err
 }
 
 /*
