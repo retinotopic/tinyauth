@@ -13,6 +13,12 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+// Private t for easy parsing
+type tokens struct {
+	Token        string `json:"id_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type Provider struct {
 	Config           oauth2.Config
 	RevokeURL        string
@@ -59,29 +65,29 @@ CompleteAuth finishes the Google OAuth2 authorization process.
 It exchanges the authorization code for refresh token and id token.
 */
 func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
-	tokens := provider.Tokens{}
+	t := provider.Tokens{}
 	if r.FormValue("state") != p.OauthStateString {
 		http.Error(w, "The oauth state was missing or invalid", http.StatusBadRequest)
-		return tokens, errors.New("invalid oauth state")
+		return t, errors.New("invalid oauth state")
 	}
 	code := r.FormValue("code")
 	fmt.Println(code)
 	token, err := p.Config.Exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
-	tokens.Token = token.Extra("id_token").(string)
-	tokens.RefreshToken = token.RefreshToken
-	if len(tokens.Token) == 0 || len(tokens.RefreshToken) == 0 {
-		http.Error(w, "tokens are empty", http.StatusBadRequest)
-		return tokens, fmt.Errorf("tokens is empty")
+	t.Token = token.Extra("id_token").(string)
+	t.RefreshToken = token.RefreshToken
+	if len(t.Token) == 0 || len(t.RefreshToken) == 0 {
+		http.Error(w, "t are empty", http.StatusBadRequest)
+		return t, fmt.Errorf("t is empty")
 	}
-	fmt.Println(tokens)
-	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
-	RefreshToken := http.Cookie{Name: "refresh_token", Value: tokens.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
+	fmt.Println(t)
+	Token := http.Cookie{Name: "token", Value: t.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	RefreshToken := http.Cookie{Name: "refresh_token", Value: t.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
 	http.SetCookie(w, &Token)
 	http.SetCookie(w, &RefreshToken)
 	w.WriteHeader(http.StatusOK)
-	return tokens, err
+	return t, err
 }

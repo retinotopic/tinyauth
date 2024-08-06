@@ -20,7 +20,6 @@ import (
 type tokens struct {
 	Token        string `json:"idToken"`
 	RefreshToken string `json:"refreshToken"`
-	Email        string `json:"email"`
 }
 
 type Provider struct {

@@ -20,12 +20,13 @@ Refresh renews the id token using the refresh token for Google OAuth2.
 It sends a request to the Google token endpoint and updates the id token cookie.
 */
 func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Tokens, error) {
-	tokens := provider.Tokens{}
+	t := provider.Tokens{}
+	tkns := tokens{}
 	form := url.Values{}
 	token, err := r.Cookie("refresh_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
 	form.Add("refresh_token", token.Value)
 	form.Add("grant_type", "refresh_token")
@@ -34,34 +35,28 @@ func (p Provider) Refresh(w http.ResponseWriter, r *http.Request) (provider.Toke
 	req, err := http.NewRequest("POST", google.Endpoint.TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return tokens, err
+		return t, err
 	}
-	m := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&m)
+	if resp.StatusCode != 200 {
+		http.Error(w, resp.Status, resp.StatusCode)
+		return t, fmt.Errorf("%v", resp.Status)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&tkns)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return tokens, err
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return t, err
 	}
-	tokens.Token, _ = m["id_token"].(string)
-	if len(tokens.Token) == 0 {
-		errstr, err := json.Marshal(m["error"])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return tokens, err
-		}
-		http.Error(w, string(errstr), http.StatusBadRequest)
-		return tokens, fmt.Errorf("%v", string(errstr))
-	}
-	Token := http.Cookie{Name: "token", Value: tokens.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
+	t.Token = tkns.Token
+	Token := http.Cookie{Name: "token", Value: t.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	http.SetCookie(w, &Token)
 	w.WriteHeader(http.StatusOK)
-	return tokens, err
+	return t, err
 
 }
 
@@ -88,21 +83,9 @@ func (p Provider) RevokeRefresh(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	m := make(map[string]interface{})
-	err = json.NewDecoder(resp.Body).Decode(&m)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return err
-	}
-	_, ok := m["error"]
-	if ok {
-		errstr, err := json.Marshal(m["error"])
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return err
-		}
-		http.Error(w, string(errstr), http.StatusBadRequest)
-		return fmt.Errorf("%v", string(errstr))
+	if resp.StatusCode != 200 {
+		http.Error(w, resp.Status, resp.StatusCode)
+		return fmt.Errorf("%v", resp.Status)
 	}
 
 	w.WriteHeader(http.StatusOK)
