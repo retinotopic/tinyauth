@@ -56,7 +56,12 @@ It redirects the user to the Google authorization page.
 */
 func (p Provider) BeginAuth(w http.ResponseWriter, r *http.Request) error {
 	url := p.Config.AuthCodeURL(p.OauthStateString, oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect) // composing our auth request url
+	_, err := w.Write([]byte(url))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return err
+	}
+	//http.Redirect(w, r, url, http.StatusTemporaryRedirect) // composing our auth request url
 	return nil
 }
 
@@ -71,7 +76,6 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 		return t, errors.New("invalid oauth state")
 	}
 	code := r.FormValue("code")
-	fmt.Println(code)
 	token, err := p.Config.Exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -83,7 +87,7 @@ func (p Provider) CompleteAuth(w http.ResponseWriter, r *http.Request) (provider
 		http.Error(w, "t are empty", http.StatusBadRequest)
 		return t, fmt.Errorf("t is empty")
 	}
-	fmt.Println(t)
+
 	Token := http.Cookie{Name: "token", Value: t.Token, MaxAge: 3600, HttpOnly: true, Secure: true}
 	RefreshToken := http.Cookie{Name: "refresh_token", Value: t.RefreshToken, HttpOnly: true, Secure: true, Path: p.RefreshPath}
 	http.SetCookie(w, &Token)
