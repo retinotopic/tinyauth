@@ -5,9 +5,10 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"net/http"
+	"strconv"
 
-	"github.com/retinotopic/pokerGO/pkg/randfuncs"
 	"github.com/retinotopic/tinyauth/provider"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -35,6 +36,7 @@ func New(ctx context.Context, clientid string, clientsecret, redirect string, re
 	if err != nil {
 		return Provider{}, err
 	}
+
 	return Provider{
 		Config: oauth2.Config{
 			ClientID:     clientid,
@@ -44,7 +46,7 @@ func New(ctx context.Context, clientid string, clientsecret, redirect string, re
 			Endpoint:     google.Endpoint,
 		},
 		RevokeURL:        "https://accounts.google.com/o/oauth2/revoke",
-		OauthStateString: randfuncs.RandomString(20, randfuncs.NewSource()),
+		OauthStateString: strconv.FormatUint(new(maphash.Hash).Sum64(), 10),
 		PublicKey:        key,
 		RefreshPath:      refreshPath,
 	}, nil
